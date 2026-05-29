@@ -53,6 +53,7 @@ HTML = r"""
   .kpi .l { font-size:7.4pt; color:#6b7785; font-weight:600; text-transform:uppercase; letter-spacing:.3px; }
 
   .oneline { background:#fbfcfd; border:1px solid #e9edf2; border-radius:8px; padding:7px 11px; margin-bottom:9px; }
+  .impact { background:#fdf3ee; border-left:4px solid #E8743B; border-radius:8px; padding:9px 13px; margin-top:10px; }
 
   .cols { display:flex; gap:13px; }
   .col { flex:1; }
@@ -153,6 +154,13 @@ responded, so most of the spend was wasted. The model scores each customer's lik
     random targeting to prove the lift in dollars, and probability calibration so the scores can be trusted
     as money.</p>
   </div>
+</div>
+
+<div class="impact">
+  <b>Expected business impact.</b> The same budget, aimed at customers who respond about three times more
+  often, turns into materially more accepted offers per dollar and far less wasted contact spend. More than a
+  one-off model, it gives the marketing team a repeatable, measurable way to decide where the next dollar
+  earns the most &mdash; targeting instead of broadcasting, with the lift provable against a control group.
 </div>
 
 <div class="foot">
