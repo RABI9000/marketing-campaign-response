@@ -18,7 +18,7 @@ from playwright.sync_api import sync_playwright
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # --- Links (clickable in the PDF) ----------------------------------------- #
-APP_URL = "https://marketing-campaign-response.streamlit.app"
+APP_URL = "https://marketing-campaign-response-ajrjqsucchbawv2ykmcklt.streamlit.app"
 GITHUB_URL = "https://github.com/RABI9000/marketing-campaign-response"
 NOTEBOOK_URL = GITHUB_URL + "/blob/main/notebook/marketing_campaign_analysis.ipynb"
 
@@ -42,9 +42,9 @@ HTML = r"""
   .head h1 { color:#fff; font-size:17pt; letter-spacing:-.3px; }
   .head .sub { color:#e6edf4; font-size:9.6pt; margin-top:2px; }
   .btns { margin-top:9px; }
-  .btn { display:inline-block; background:#E8743B; color:#fff !important; font-weight:700;
-         padding:6px 13px; border-radius:7px; font-size:9.2pt; margin-right:7px; }
-  .btn.ghost { background:rgba(255,255,255,.18); }
+  .appline { margin-top:9px; font-size:9.3pt; color:#fff; }
+  .appline b { color:#fff; }
+  .appline a { color:#fff; text-decoration:underline; word-break:break-all; }
 
   .kpis { display:flex; gap:7px; margin:9px 0; }
   .kpi { flex:1; border:1px solid #e9edf2; border-left:4px solid #2E6F9E; border-radius:8px;
@@ -71,10 +71,7 @@ HTML = r"""
 <div class="head">
   <h1>Marketing Campaign Response &mdash; Summary</h1>
   <div class="sub">Predicting who responds to a campaign, and turning it into a targeting and budget plan.</div>
-  <div class="btns">
-    <a class="btn" href="__APP_URL__">&#9658;&nbsp; Open the live app</a>
-    <a class="btn ghost" href="__GITHUB_URL__">Code &amp; notebook on GitHub</a>
-  </div>
+  <div class="appline">&#9658;&nbsp; <b>Live interactive app:</b> <a href="__APP_URL__">__APP_URL__</a></div>
 </div>
 
 <div class="kpis">
@@ -138,9 +135,8 @@ responded, so most of the spend was wasted. The model scores each customer's lik
 </div>
 
 <div class="foot">
-  <b>Live app:</b> <a href="__APP_URL__">__APP_URL__</a> &nbsp;&middot;&nbsp;
-  <b>Code:</b> <a href="__GITHUB_URL__">github.com/RABI9000/marketing-campaign-response</a> &nbsp;&middot;&nbsp;
-  <b>Full analysis:</b> <a href="__NOTEBOOK_URL__">Jupyter notebook</a><br>
+  <b>Code &amp; notebook:</b> <a href="__GITHUB_URL__">github.com/RABI9000/marketing-campaign-response</a>
+  &nbsp;&middot;&nbsp; <b>Full analysis:</b> <a href="__NOTEBOOK_URL__">Jupyter notebook</a><br>
   Built with Python, pandas, scikit-learn, XGBoost, and Streamlit.
 </div>
 
