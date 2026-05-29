@@ -72,6 +72,7 @@ HTML = r"""
   <h1>Marketing Campaign Response &mdash; Summary</h1>
   <div class="sub">Predicting who responds to a campaign, and turning it into a targeting and budget plan.</div>
   <div class="appline">&#9658;&nbsp; <b>Live interactive app:</b> <a href="__APP_URL__">__APP_URL__</a></div>
+  <div class="appline" style="margin-top:3px;">&#128196;&nbsp; <b>Full Jupyter notebook:</b> <a href="__NOTEBOOK_URL__">view the complete analysis &amp; code</a></div>
 </div>
 
 <div class="kpis">
@@ -134,10 +135,29 @@ responded, so most of the spend was wasted. The model scores each customer's lik
   </div>
 </div>
 
+<div class="cols" style="margin-top:2px;">
+  <div class="col">
+    <h3>What drives a response</h3>
+    <p>The model's top factors, in order: <b>past campaign acceptances</b> (by far the strongest), the
+    <b>recency</b> of the last purchase, <b>customer tenure</b>, then <b>income and spending</b> (especially
+    wine, meat, and catalog buying). Being single or highly educated nudges response up; children at home
+    pull it down. In one sentence: the most likely responder is a <b>recent, comfortable, previously
+    responsive buyer with no kids at home</b>, and the model puts a number on each trait.</p>
+  </div>
+  <div class="col">
+    <h3>Deployment risks &amp; what's next</h3>
+    <p><b>Watch for:</b> wasted spend from false positives (cap contact frequency, tune the cutoff), missed
+    sales from false negatives (lean toward recall, keep a small random holdout), and data drift as customer
+    behaviour shifts (monitor the inputs, retrain on a rolling quarterly window).
+    <b>Next steps:</b> customer segmentation to pair the right offer with each group, an A/B test against
+    random targeting to prove the lift in dollars, and probability calibration so the scores can be trusted
+    as money.</p>
+  </div>
+</div>
+
 <div class="foot">
-  <b>Code &amp; notebook:</b> <a href="__GITHUB_URL__">github.com/RABI9000/marketing-campaign-response</a>
-  &nbsp;&middot;&nbsp; <b>Full analysis:</b> <a href="__NOTEBOOK_URL__">Jupyter notebook</a><br>
-  Built with Python, pandas, scikit-learn, XGBoost, and Streamlit.
+  Built with Python, pandas, scikit-learn, XGBoost, and Streamlit. The full method, code, and charts live in
+  the accompanying Jupyter notebook (linked above).
 </div>
 
 </body></html>
