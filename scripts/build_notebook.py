@@ -30,37 +30,37 @@ def code(text: str) -> None:
 # ===========================================================================
 md(r"""
 # Predicting Marketing Campaign Response
-### A customer-response model, and what it tells the marketing team to do next
+### Who to target, and what it's worth
 
-**Author:** Data Science Candidate &nbsp;•&nbsp; **Dataset:** Kaggle *Marketing Campaign* (2,240 retail customers)
+**Author:** Data Science Candidate &nbsp;·&nbsp; **Dataset:** Kaggle *Marketing Campaign* (2,240 retail customers)
 
 ---
 
-A retailer ran a campaign — an offer pushed to thousands of customers — and recorded who took it up.
-Only about **1 in 7 customers said yes.** Contacting everyone is expensive and a little annoying for the
-6 in 7 who never bite. This notebook builds a model that scores each customer's *likelihood to respond*,
-then turns that score into concrete marketing decisions: who to target, where to spend, and what to expect.
+A retailer sent an offer to thousands of customers and wrote down who took it. Only about 1 in 7 said
+yes. Contacting everyone costs money, and it mildly annoys the 6 in 7 who were never going to bite. So
+the job here is simple to state: score how likely each customer is to respond, then use that score to
+decide who to contact, where to spend, and what to expect back.
 
-I deliberately split my time the way the business would want it: a solid model, but with the bulk of the
-effort on **what the findings mean for revenue.** Every chart below is followed by a plain-language read,
-and the technical results are always translated back into a marketing action.
+I spent my time the way the business would want me to. The model is solid, but most of the effort went
+into what the numbers mean for revenue. Every chart has a plain-English read under it, and every
+technical result gets tied back to a marketing decision.
 
 **How to read this notebook**
 
 | # | Section | What you get |
 |---|---------|--------------|
 | 1 | Project Overview | The problem, the goal, and how we judge success |
-| 2 | Data Loading & Understanding | What's in the data and what's wrong with it |
+| 2 | Data Loading & Understanding | What's in the data, and what's wrong with it |
 | 3 | Exploratory Data Analysis | The patterns, with **5+ business insights** |
 | 4 | Feature Engineering | New signals we build from the raw columns |
-| 5 | Data Preprocessing | Leakage-free preparation for modelling |
+| 5 | Data Preprocessing | Clean, leak-free preparation for modelling |
 | 6 | Model Building | Logistic Regression, Random Forest, XGBoost |
-| 7 | Model Evaluation | Head-to-head metrics and the winner |
-| 8 | Marketing Perspective | Which metric actually matters, and why |
+| 7 | Model Evaluation | The metrics, head to head, and the winner |
+| 8 | A Marketing View | Which metric actually matters, and why |
 | 9 | Feature Importance | What drives a "yes" |
 | 10 | Business Recommendations | The action plan for leadership |
-| 11 | Deployment Risks | What could go wrong in production |
-| 12 | Future Improvements | What I'd do with one more week |
+| 11 | Deployment Risks | What could go wrong once it's live |
+| 12 | Future Improvements | What I'd do with another week |
 | 13 | Executive Summary | The one-pager for a Marketing Director |
 """)
 
@@ -68,30 +68,29 @@ and the technical results are always translated back into a marketing action.
 # SECTION 1 — PROJECT OVERVIEW
 # ===========================================================================
 md(r"""
-# 1 — Project Overview
+# 1. Project Overview
 
-**The business problem.** Marketing budget is finite and every contact has a cost (a mailer, a call, a
-discount that eats margin). When a campaign goes out to the entire customer base, most of the money is
-spent on people who were never going to respond. The team wants to stop spraying and start *targeting*.
+**The problem.** Marketing budget is limited, and every contact costs something: a mailer, a call, a
+discount that eats into margin. When an offer goes to the whole customer base, most of that money lands
+on people who were never going to buy. The team wants to stop spraying and start aiming.
 
-**The ML objective.** A binary classification model: given everything we know about a customer, predict
-the probability that they will accept the next campaign offer (`Response` = 1) versus ignore it
-(`Response` = 0). The probability — not just the yes/no — is the useful output, because it lets us rank
-customers and contact them in priority order until the budget runs out.
+**The goal.** Build a model that takes what we know about a customer and predicts how likely they are to
+accept the next offer (`Response` = 1) or ignore it (`Response` = 0). The probability is more useful than
+a plain yes/no, because it lets us rank customers and work down the list until the budget runs out.
 
-**Success criteria.**
+**How we'll know it worked.**
 
-- *Statistical:* rank customers well enough that a model-driven contact list beats random contacting by a
-  wide margin. We track **ROC-AUC** (ranking quality) and **Recall** (share of true responders we catch),
-  not raw accuracy — with an 85/15 class split, a model that predicts "no" for everyone is 85% accurate
-  and 100% useless.
-- *Business:* a contact strategy that reaches most of the responders while cutting wasted contacts, and a
-  short list of customer traits the team can act on immediately.
+- On the data side: the model should rank customers well enough that a model-picked contact list beats
+  contacting people at random, by a wide margin. The numbers to watch are **ROC-AUC** (how well it ranks)
+  and **recall** (how many real responders we catch). Plain accuracy is misleading here. With an 85/15
+  split, a model that says "no" to everyone scores 85% and is useless.
+- On the business side: a contact plan that reaches most of the responders while cutting wasted contacts,
+  plus a short list of customer traits the team can act on right away.
 
-**Why this matters to marketing teams.** Two numbers frame everything: the **cost of a wasted contact**
-(a false positive) and the **value of a missed responder** (a false negative). A good model shifts spend
-away from the first and toward the second. Concretely, it answers the only three questions a marketing
-director cares about: *Who do we call first? How much do we spend? What lift do we get for it?*
+**Why marketing cares.** Two numbers sit behind everything: what a wasted contact costs, and what a missed
+responder costs. A good model moves spend away from the first and toward the second. Put plainly, it
+answers the three questions a marketing director actually asks: who do we call first, how much do we
+spend, and what do we get back?
 """)
 
 # ===========================================================================
@@ -100,8 +99,8 @@ director cares about: *Who do we call first? How much do we spend? What lift do 
 md(r"""
 ## Setup
 
-Standard scientific-Python stack. The styling block just makes every chart legible at a glance — a
-consistent palette where **coral always means "responded"** and grey means "did not".
+The usual Python stack. The styling block below just keeps every chart easy to read, with one rule:
+**coral always means "responded"** and grey means "didn't".
 """)
 
 code(r"""
@@ -148,11 +147,11 @@ print("Environment ready.")
 # SECTION 2 — DATA LOADING & UNDERSTANDING
 # ===========================================================================
 md(r"""
-# 2 — Data Loading & Understanding
+# 2. Data Loading & Understanding
 
-The file is semicolon-separated and carries a UTF-8 byte-order mark, so we pass `sep=";"` and
-`encoding="utf-8-sig"`. If the local copy is missing (e.g. a fresh Google Colab runtime), we fall back to
-the public raw URL so the notebook always runs end-to-end.
+The file is semicolon-separated and starts with a UTF-8 byte-order mark, so we read it with `sep=";"` and
+`encoding="utf-8-sig"`. If the local copy isn't there (say, a fresh Google Colab session), the code falls
+back to the public URL, so the notebook always runs start to finish.
 """)
 
 code(r"""
@@ -168,9 +167,9 @@ print(f"Loaded {raw.shape[0]:,} customers x {raw.shape[1]} columns from "
 """)
 
 md(r"""
-## Dataset Overview
+## Dataset overview
 
-One row per customer. The columns fall into five natural groups — knowing these groups is half the battle:
+One row per customer. The columns sort into a few natural groups, and knowing the groups is half the work:
 
 | Group | Columns | What it captures |
 |-------|---------|------------------|
@@ -182,8 +181,8 @@ One row per customer. The columns fall into five natural groups — knowing thes
 | **Campaign history** | `AcceptedCmp1`–`AcceptedCmp5`, `Complain` | How they reacted to past offers |
 | **Target** | `Response` | **1 = accepted the latest campaign, 0 = ignored it** |
 
-`Z_CostContact` and `Z_Revenue` are bookkeeping constants (cost = 3, revenue = 11 per offer) — we'll put
-those economics to good use later in the Marketing Perspective.
+Two columns, `Z_CostContact` and `Z_Revenue`, are just bookkeeping constants (cost 3, revenue 11 per
+offer). They carry no signal, but we'll borrow those numbers later to turn model scores into dollars.
 """)
 
 code(r"""
@@ -197,8 +196,8 @@ raw.info()
 md(r"""
 ### Target distribution
 
-The first thing to check in any response problem: how (im)balanced is the target? This single number
-shapes every modelling decision that follows.
+First question in any response problem: how lopsided is the target? That one number shapes every
+modelling choice that follows.
 """)
 
 code(r"""
@@ -222,17 +221,17 @@ plt.show()
 """)
 
 md(r"""
-**Read:** about **15% responders to 85% non-responders** — a ~5.7-to-1 imbalance. Two consequences we
-carry forward: (1) *accuracy is a trap* (predicting "no" for everyone scores 85%), so we lean on ROC-AUC
-and recall instead; and (2) the models must be told to **weight the minority class** or they'll happily
-ignore the very customers we care about.
+**What this says:** roughly 15% responded and 85% didn't, about a 5.7-to-1 split. Two things follow.
+First, accuracy is misleading (saying "no" to everyone already scores 85%), so we judge models on ROC-AUC
+and recall instead. Second, we have to tell each model to pay extra attention to the rare "yes" cases, or
+it will just learn to predict "no" and ignore the very customers we care about.
 """)
 
 md(r"""
-## Data Quality Checks
+## Data quality checks
 
-Before trusting any pattern, find out where the data lies to us. We check five things: missing values,
-duplicates, wrong datatypes, outliers, and category inconsistencies.
+Before trusting any pattern, it's worth finding out where the data is wrong. Five checks: missing values,
+duplicates, wrong data types, outliers, and messy categories.
 """)
 
 code(r"""
@@ -246,9 +245,10 @@ print("\nEverything else is complete.")
 """)
 
 md(r"""
-**Read:** only `Income` is missing, for **24 customers (~1.1%)**. That's small and almost certainly
-*missing at random* (a few records where income wasn't captured), so we can impute it safely — but we'll
-do that *inside the modelling pipeline* so the fill value is learned only from training data.
+**What this says:** only `Income` is missing, for 24 customers (about 1%). It's a small gap, and it looks
+random (a few records where income just wasn't recorded), so it's safe to fill in. We'll do the filling
+*inside the model pipeline*, so the fill value is learned only from training data and never peeks at the
+test set.
 """)
 
 code(r"""
@@ -258,8 +258,7 @@ print("Fully duplicate rows :", raw.duplicated().sum())
 """)
 
 md(r"""
-**Read:** no duplicate customers and no repeated rows — the grain of the data is clean (one row per
-person).
+**What this says:** no repeated customers and no duplicate rows. One row per person, as it should be.
 """)
 
 code(r"""
@@ -271,9 +270,10 @@ print("Z_CostContact unique values:", raw["Z_CostContact"].unique(),
 """)
 
 md(r"""
-**Read:** `Dt_Customer` (enrolment date) is text and needs parsing to a real date before we can compute
-tenure. `Z_CostContact` and `Z_Revenue` are **constant** (3 and 11) — zero predictive value, so they get
-dropped (though we'll reuse those numbers as the campaign's unit economics).
+**What this says:** the signup date (`Dt_Customer`) is stored as text, so we convert it to a real date
+before measuring how long someone has been a customer. `Z_CostContact` and `Z_Revenue` never change
+(always 3 and 11), so they're useless as predictors and get dropped. We keep the numbers themselves,
+though, for the cost-and-revenue maths later on.
 """)
 
 code(r"""
@@ -294,9 +294,9 @@ print("Top incomes        :", sorted(raw["Income"].dropna().unique())[-3:],
 """)
 
 md(r"""
-**Read:** three customers were "born" before 1900 (implied age 115+) and one reports a **\$666,666**
-income that sits about four times above the next-highest earner. These are data-entry errors, not real
-extremes — we'll remove those few rows so they don't distort age and income statistics.
+**What this says:** three customers were "born" before 1900, which would make them 115+ years old, and
+one reports an income of \$666,666, roughly four times the next-highest earner. These are typos, not real
+people, so we drop those few rows to keep the age and income numbers honest.
 """)
 
 code(r"""
@@ -306,27 +306,28 @@ print("Education:\n", raw["Education"].value_counts())
 """)
 
 md(r"""
-**Read:** `Marital_Status` has junk labels — `Alone` (3), `Absurd` (2), `YOLO` (2). `Alone` is really
-*Single*; `Absurd`/`YOLO` are nonsense entries we'll bucket into *Other*. `Education` is clean, just using
-European labels (`2n Cycle` = Master's-equivalent, `Basic` = primary).
+**What this says:** `Marital_Status` has a few junk entries: `Alone` (3), `Absurd` (2), `YOLO` (2).
+"Alone" really means Single, so we fold it in. "Absurd" and "YOLO" are nonsense, so they go into an
+"Other" bucket. `Education` is fine; it just uses European labels (`2n Cycle` is roughly a Master's,
+`Basic` is primary school).
 
-### Data-quality verdict (plain English)
+### The verdict, in plain terms
 
-This is a **clean, well-behaved dataset**. The only real work is: drop two dead columns, parse one date,
-remove a handful of error rows, tidy a few marital-status labels, and let the pipeline fill 24 missing
-incomes. No heroic cleaning required — which means we can trust the patterns we find next.
+This is a clean dataset. The only real work is dropping two dead columns, converting one date, removing a
+few typo rows, tidying a handful of marital-status labels, and filling 24 missing incomes inside the
+pipeline. Nothing dramatic, which means we can trust what the data tells us next.
 """)
 
 # ===========================================================================
 # SECTION 3 — EDA
 # ===========================================================================
 md(r"""
-# 3 — Exploratory Data Analysis
+# 3. Exploratory Data Analysis
 
-We now apply the cleaning identified above and build a set of engineered features (detailed in Section 4)
-so the EDA can speak in business terms — *total spending*, *income tier*, *prior campaigns accepted* —
-rather than raw columns. Then we look at demographics, spending, campaign behaviour, and finally compare
-responders against non-responders.
+Now we clean the data (using what we found above) and add a handful of engineered features, which Section
+4 explains in full. That lets the charts talk in business terms (total spending, income tier, past
+campaigns accepted) instead of raw columns. Then we walk through demographics, spending, and campaign
+behaviour, and finish by comparing the people who responded against the people who didn't.
 """)
 
 code(r"""
@@ -374,7 +375,7 @@ print(f"Overall response rate: {overall_rate:.1%}")
 """)
 
 md(r"""
-### Demographics — who are these customers?
+### Demographics: who are these customers?
 """)
 
 code(r"""
@@ -405,14 +406,14 @@ plt.show()
 """)
 
 md(r"""
-**Read:** a mature, fairly affluent base. Ages cluster in the **40–60** range, income is roughly bell-shaped
-around **\$50k** (a long right tail of high earners), and the typical customer is a **university graduate**
-who is **married or living with a partner**. This is a customer base with disposable income — the campaign's
-job is to find the slice most willing to spend it.
+**What this says:** a fairly mature, comfortable customer base. Most are between 40 and 60, income sits
+around \$50k with a long tail of high earners, and the typical customer is a university graduate living
+with a partner. These are people with money to spend. The campaign's job is to find the ones most willing
+to spend it.
 """)
 
 md(r"""
-### Spending behaviour — where does the money go?
+### Spending: where does the money go?
 """)
 
 code(r"""
@@ -436,14 +437,14 @@ print((df[SPEND].sum() / df[SPEND].sum().sum() * 100).round(1).sort_values(ascen
 """)
 
 md(r"""
-**Read:** spending is dominated by **wine and meat**, which together are roughly half of all revenue. The
-per-customer spending distribution is heavily **right-skewed** — a minority of high-spenders account for a
-large share of revenue. That skew is exactly the kind of structure a tree-based model exploits, and it
-hints that *spend* will be a strong response signal.
+**What this says:** wine and meat dominate, together making up about half of all spending. And spending
+per customer is very uneven: a small group of big spenders accounts for a large share of revenue. That
+kind of skew is something tree models handle well, and it's an early hint that how much someone spends
+will say a lot about whether they respond.
 """)
 
 md(r"""
-### Campaign & channel behaviour — how do they engage?
+### Campaigns and channels: how do they engage?
 """)
 
 code(r"""
@@ -468,15 +469,17 @@ plt.show()
 """)
 
 md(r"""
-**Read:** past campaigns landed with only **3–7%** of customers (Campaign 2 flopped at ~1%), which is why
-better targeting matters so much — there's a lot of headroom. On channels, the **store** is the workhorse,
-but **catalog** buyers, though fewer, turn out to be unusually responsive (we'll confirm this below).
+**What this says:** past campaigns only landed with about 3-7% of customers, and Campaign 2 basically
+flopped at 1%. That low base is exactly why better targeting is worth so much; there's plenty of room to
+improve. On channels, the store does the heavy lifting, but catalog buyers (fewer in number) turn out to
+respond unusually often, which the next charts confirm.
 """)
 
 md(r"""
-### Responders vs non-responders — the comparison that matters
+### Responders vs non-responders: the comparison that matters
 
-This is the heart of the EDA: for each promising signal, do responders look different from everyone else?
+This is the part that counts. For each promising signal, do the people who responded actually look
+different from everyone else?
 """)
 
 code(r"""
@@ -541,99 +544,102 @@ plt.show()
 """)
 
 md(r"""
-**Read:** prior campaign acceptance dominates everything else, with spending and income close behind. Note
-what's *missing*: `NumWebVisitsMonth` barely correlates with response — frequent browsing is **not** the
-same as buying, a useful myth to bust before anyone over-invests in web-visit retargeting.
+**What this says:** accepting a past campaign is by far the strongest signal, with spending and income not
+far behind. Worth noting what's missing: how often someone visits the website barely moves the needle on
+whether they respond. Browsing isn't buying. Good to know before anyone spends heavily retargeting people
+just for clicking around.
 """)
 
 # ----- KEY INSIGHTS -----
 md(r"""
 # Key Insights
 
-Five findings, each with the observation, the evidence in the data, and what the business should do about it.
+Five findings. For each one: what I saw, the evidence in the data, and what the business should do about it.
 
 ---
 
-### Insight 1 — Past behaviour is destiny: prior responders are the goldmine
-**Observation.** The single best predictor of a "yes" is whether the customer said "yes" before.
-**Evidence.** Customers who accepted **at least one** prior campaign respond at **40.7%**, versus **8.2%**
-for those who never have — a **2.7x lift**. It climbs monotonically: one prior accept → 31%, two → 51%,
-three → **80%**. It's also the #1 linear correlate with `Response` (r ≈ 0.43).
-**Business meaning.** Your warmest list already exists. Before spending a cent on prospecting, re-target
-the ~460 customers with any prior acceptance — they convert at roughly 3x the base rate.
+### Insight 1: the best predictor of a "yes" is a past "yes"
+**What I saw.** Whether someone responded before tells you more than anything else about whether they'll
+respond again.
+**Evidence.** People who accepted at least one past campaign respond at **40.7%**, against **8.2%** for
+those who never have. That's 2.7 times the rate. And it keeps climbing: one past acceptance gets you 31%,
+two gets 51%, three gets **80%**. It's also the single strongest correlate with `Response` (r ≈ 0.43).
+**What to do.** Your warmest list already exists. Before spending anything on finding new prospects, go
+back to the ~460 customers who've said yes before. They convert at roughly three times the average.
 
 ---
 
-### Insight 2 — Money talks: high-income customers respond ~2x more
-**Observation.** Response rises sharply with income tier.
-**Evidence.** High-income customers (>\$70k) respond at **28.1%** vs **10.0%** for low-income (<\$35k) —
-an **1.9x lift**. Combine high income *and* a prior acceptance and the rate jumps to **47%** (3.2x).
-**Business meaning.** Premium customers are both more likely to convert and worth more per conversion.
-They deserve a higher-touch, higher-value offer — not the same coupon everyone gets.
+### Insight 2: higher income, higher response (about double)
+**What I saw.** Response climbs steadily as income rises.
+**Evidence.** High earners (above \$70k) respond at **28.1%**, against **10.0%** for the under-\$35k group,
+about 1.9 times higher. Combine high income with a past acceptance and it jumps to **47%**.
+**What to do.** Wealthier customers are both more likely to buy and worth more when they do. Give them a
+better, higher-value offer instead of the same coupon everyone gets.
 
 ---
 
-### Insight 3 — Recency wins: recent buyers are warm, lapsed buyers are cold
-**Observation.** The more recently a customer purchased, the more likely they respond.
-**Evidence.** Responders last purchased **~35 days** ago on average; non-responders **~52 days** ago.
-**Business meaning.** Strike while the relationship is warm. Trigger campaigns *off* recent purchases
-(e.g. within 30 days) rather than blasting the whole base on a fixed calendar.
+### Insight 3: recent buyers are warm, lapsed buyers are cold
+**What I saw.** The more recently someone bought, the more likely they respond.
+**Evidence.** People who responded had bought about **35 days** ago on average. People who didn't, about
+**52 days** ago.
+**What to do.** Reach out while the relationship is still warm. Tie campaigns to a recent purchase (say,
+within 30 days) instead of blasting the whole list on a fixed schedule.
 
 ---
 
-### Insight 4 — Childless households respond far more
-**Observation.** Having kids or teens at home suppresses response.
-**Evidence.** Customers with **no children** respond at **26.5%** vs **10.3%** for those with children —
-a **1.8x** gap. (Childless households here also skew higher-income and higher-spend.)
-**Business meaning.** Household composition is a cheap, always-available filter. Weight targeting toward
-no-children, higher-disposable-income households for premium offers.
+### Insight 4: households without kids respond far more
+**What I saw.** Having children or teenagers at home goes with a much lower response rate.
+**Evidence.** Customers with no kids respond at **26.5%**, against **10.3%** for those with children,
+about 1.8 times higher. (The no-kids group also tends to earn and spend more.)
+**What to do.** Household makeup is a free, always-available filter. Lean toward no-children,
+higher-spending households for premium offers.
 
 ---
 
-### Insight 5 — Channel tells you who's listening: catalog buyers over-respond
-**Observation.** Catalog engagement separates responders from the rest more than web or store.
-**Evidence.** Responders average **4.2** catalog purchases vs **2.4** for non-responders; catalog is among
-the top correlates while `NumWebVisitsMonth` is essentially flat (responders and non-responders both
-average ~5.3 visits/month).
-**Business meaning.** Catalog-active customers are a high-yield segment — keep investing there. And don't
-be fooled by raw web traffic: visits ≠ intent, so prioritise *purchase* signals over *browsing* signals.
+### Insight 5: catalog buyers punch above their weight
+**What I saw.** Catalog activity separates responders from everyone else more clearly than web or store
+activity does.
+**Evidence.** Responders average **4.2** catalog purchases, against **2.4** for non-responders. Catalog is
+among the top signals, while website visits are basically flat (both groups average about 5.3 a month).
+**What to do.** Keep investing in catalog-active customers; they're a high-yield group. And don't be
+fooled by web traffic: a visit isn't intent, so trust purchase behaviour over browsing.
 
 ---
 
-### Bonus — Education and life-stage nuances
-PhD holders respond at **20.8%** vs **3.7%** for Basic-education customers; single/divorced/widowed
-customers out-respond partnered ones; and response is **U-shaped in age** (the under-35s and the 65+ both
-over-index). Useful secondary filters when refining a segment.
+### A few more, worth keeping in your back pocket
+PhD holders respond at **20.8%** against **3.7%** for the basic-education group. Single, divorced, and
+widowed customers respond more than partnered ones. And response is U-shaped by age: the under-35s and the
+over-65s both respond more than the middle. Handy secondary filters when you're fine-tuning a segment.
 """)
 
 # ===========================================================================
 # SECTION 4 — FEATURE ENGINEERING
 # ===========================================================================
 md(r"""
-# 4 — Feature Engineering
+# 4. Feature Engineering
 
-Raw columns describe a customer; *engineered* features describe their **behaviour and value**, which is
-what actually predicts response. The functions in Section 3 already built these — here is the why and the
-expected business value of each, well beyond the required minimum of five.
+The raw columns describe a customer. Engineered features describe their **behaviour and value**, and
+that's what actually predicts response. The functions back in Section 3 already built these. Here's what
+each one is and why it earns its place. That's ten, well past the five the brief asks for.
 
-| # | Feature | How it's built | Why it's created / business value |
-|---|---------|----------------|-----------------------------------|
-| 1 | **Age** | `2015 − Year_Birth` | People reason in age, not birth year; enables life-stage segmentation |
-| 2 | **TotalSpending** | Sum of the 6 `Mnt*` columns | A single "customer value" number; high spenders convert more |
-| 3 | **TotalPurchases** | Sum of web + catalog + store + deals | Overall purchase frequency / activity level |
-| 4 | **SpendingPerPurchase** | `TotalSpending ÷ TotalPurchases` | Average basket value — separates premium from bargain shoppers |
-| 5 | **TotalAcceptedCmp** | Sum of `AcceptedCmp1–5` | Loyalty / proven responsiveness — the strongest single signal |
-| 6 | **Customer_Tenure_Years** | `(2015-01-01 − Dt_Customer)` | Long-standing vs new customers behave differently |
-| 7 | **EngagementScore** | `TotalPurchases + 3 × TotalAcceptedCmp` | One composite of activity *and* responsiveness (see below) |
-| 8 | **Children / HasChildren** | `Kidhome + Teenhome` | Household lifestyle & disposable-income proxy |
-| 9 | **IncomeSegment** | Bins: <35k / 35–70k / >70k | Lets leadership reason in tiers, not raw dollars |
-| 10 | **AgeGroup** | Bins: ≤35 / 36–50 / 51–65 / 65+ | Readable demographic cross-tabs |
+| # | Feature | How it's built | Why it matters |
+|---|---------|----------------|----------------|
+| 1 | **Age** | `2015 − Year_Birth` | People think in age, not birth year; lets us segment by life stage |
+| 2 | **TotalSpending** | Sum of the 6 `Mnt*` columns | One "how valuable is this customer" number; big spenders convert more |
+| 3 | **TotalPurchases** | Web + catalog + store + deals | How often they buy overall |
+| 4 | **SpendingPerPurchase** | `TotalSpending ÷ TotalPurchases` | Average basket size; tells premium shoppers from bargain hunters |
+| 5 | **TotalAcceptedCmp** | Sum of `AcceptedCmp1–5` | Proven willingness to respond; the strongest single signal |
+| 6 | **Customer_Tenure_Years** | `(2015-01-01 − Dt_Customer)` | New and long-standing customers behave differently |
+| 7 | **EngagementScore** | `TotalPurchases + 3 × TotalAcceptedCmp` | One number combining buying and responding (see below) |
+| 8 | **Children / HasChildren** | `Kidhome + Teenhome` | A stand-in for lifestyle and spare income |
+| 9 | **IncomeSegment** | Bins: <35k / 35–70k / >70k | Lets leadership think in tiers, not raw dollars |
+| 10 | **AgeGroup** | Bins: ≤35 / 36–50 / 51–65 / 65+ | Readable age cross-tabs |
 
-**The EngagementScore formula, explained.** I wanted one interpretable number that rewards two behaviours:
-transacting and responding. `EngagementScore = TotalPurchases + 3 × TotalAcceptedCmp`. The **3x weight** on
-prior acceptances is deliberate — Insight 1 showed that a single prior acceptance is worth far more than a
-single extra purchase in predicting future response, so it should count for more. It's a transparent,
-explainable proxy a marketer can sanity-check by hand, not a black box.
+**About the EngagementScore.** I wanted one easy-to-read number that rewards two things: buying and
+responding. So `EngagementScore = TotalPurchases + 3 × TotalAcceptedCmp`. The 3× weight on past
+acceptances is on purpose. Insight 1 showed a single past "yes" predicts future response far better than
+one more purchase does, so it should count for more. It's a number a marketer can check by hand, not a
+black box.
 """)
 
 code(r"""
@@ -660,34 +666,35 @@ plt.show()
 """)
 
 md(r"""
-**Read:** responders (coral) sit clearly to the right on EngagementScore, and response climbs step-wise
-across income tiers — confirming both engineered features carry real signal before we even fit a model.
+**What this says:** responders (coral) clearly sit further right on EngagementScore, and the response
+rate steps up neatly from low to high income. Both engineered features carry real signal before we've
+even trained a model.
 """)
 
 # ===========================================================================
 # SECTION 5 — DATA PREPROCESSING
 # ===========================================================================
 md(r"""
-# 5 — Data Preprocessing
+# 5. Data Preprocessing
 
-The golden rule here is **no data leakage**: every transformation that *learns* from the data (the median
-for imputing income, the mean/std for scaling, the categories for encoding) must be fit on the **training
-set only**, then applied to the test set. We guarantee that by wrapping all of it in a scikit-learn
-`Pipeline` and only ever calling `.fit()` on training data.
+The one rule that matters here is **no data leakage**. Anything that learns from the data (the median used
+to fill income, the mean and standard deviation used for scaling, the categories used for encoding) has to
+be learned from the training rows only, then applied to the test rows. We guarantee that by wrapping every
+step in a scikit-learn `Pipeline` and only ever calling `.fit()` on the training data.
 
 **The plan, step by step**
 
-- **Missing values** — `Income` (24 rows) is median-imputed *inside* the pipeline. Median, not mean, so the
-  income skew doesn't drag the fill value upward.
-- **Outliers** — already removed structurally (the impossible ages and the \$666k income). Median imputation
-  and tree models are robust to the rest.
-- **Encoding** — `Education` and `Marital_Status` are one-hot encoded, with `handle_unknown="ignore"` so a
-  never-before-seen category at prediction time can't crash the model.
-- **Scaling** — applied **only for Logistic Regression** (which is distance/scale-sensitive). Random Forest
-  and XGBoost are scale-invariant, so we skip it there and keep their splits interpretable.
-- **What we feed the model** — engineered behaviour features + the legitimate prior-campaign signals. The
-  prior `AcceptedCmp*` flags are known *before* the new campaign, so they're fair game (no leakage). We
-  exclude IDs, raw dates, and the target.
+- **Missing values.** `Income` (24 rows) gets filled with the median, inside the pipeline. Median rather
+  than mean, so the income skew doesn't pull the fill value up.
+- **Outliers.** Already handled when we cleaned the data (the impossible ages and the \$666k income).
+  Median filling and tree models cope fine with the rest.
+- **Encoding.** `Education` and `Marital_Status` become one-hot columns. We set `handle_unknown="ignore"`
+  so a category we've never seen before can't crash the model at prediction time.
+- **Scaling.** Only for Logistic Regression, which is sensitive to scale. Random Forest and XGBoost don't
+  care about scale, so we skip it there and keep their splits easy to read.
+- **What goes in.** The engineered behaviour features plus the past-campaign flags. Those `AcceptedCmp`
+  flags are known *before* the new campaign goes out, so using them isn't cheating. We leave out IDs, raw
+  dates, and the target.
 """)
 
 code(r"""
@@ -727,44 +734,45 @@ print(f"Model inputs: {len(FEATURES)} columns ({len(NUMERIC)} numeric, {len(CATE
 """)
 
 md(r"""
-**Read:** an 80/20 **stratified** split keeps the 15% response rate identical in train and test, so the
-test score is a fair estimate of real-world performance. Imputation, encoding, and scaling are now sealed
-inside each model's pipeline — they will be re-fit on every cross-validation fold automatically.
+**What this says:** an 80/20 split, stratified so the 15% response rate is the same in train and test.
+That makes the test score a fair stand-in for real-world performance. Filling, encoding, and scaling now
+live inside each model's pipeline, so they get re-learned cleanly on every cross-validation fold.
 """)
 
 # ===========================================================================
 # SECTION 6 — MODEL BUILDING
 # ===========================================================================
 md(r"""
-# 6 — Model Building
+# 6. Model Building
 
-I train three models, deliberately spanning the complexity spectrum from "fully explainable" to "best
-raw performance". All three are told to handle the class imbalance.
+I trained three models on purpose, from the most explainable to the best-performing. All three are told to
+deal with the class imbalance.
 
-### Model 1 — Logistic Regression (the transparent baseline)
-- **Why chosen.** It's the honest yardstick. If a simple linear model already ranks customers well, we know
-  the signal is strong; anything fancier must *earn* its added complexity.
-- **Advantages.** Fully interpretable (coefficients = direction & strength of each driver), fast, calibrated
-  probabilities, hard to overfit.
-- **Limitations.** Assumes roughly linear, additive effects; misses interactions (e.g. *high income **and**
-  recent purchase*) unless we hand-build them.
+### Model 1: Logistic Regression (the honest baseline)
+- **Why.** It's the yardstick. If a simple linear model already ranks customers well, the signal is
+  strong, and anything fancier has to earn its keep.
+- **Strengths.** Easy to read (each coefficient tells you the direction and strength of a driver), fast,
+  well-behaved probabilities, hard to overfit.
+- **Weaknesses.** It assumes effects are roughly linear and additive, so it misses combinations (like high
+  income *and* a recent purchase together) unless you build them in by hand.
 
-### Model 2 — Random Forest (robust non-linear workhorse)
-- **Why chosen.** Captures non-linearities and interactions automatically, needs little tuning, and is
-  resistant to outliers and irrelevant features.
-- **Advantages.** Strong out-of-the-box, gives feature importances, scale-invariant.
-- **Limitations.** Larger memory footprint; less interpretable than a single tree; can be biased toward
-  high-cardinality features.
+### Model 2: Random Forest (the sturdy all-rounder)
+- **Why.** It picks up non-linear patterns and feature combinations on its own, needs little tuning, and
+  shrugs off outliers and useless columns.
+- **Strengths.** Strong with almost no setup, reports feature importances, doesn't care about scale.
+- **Weaknesses.** Heavier on memory, harder to read than a single tree, and can lean toward features with
+  many distinct values.
 
-### Model 3 — XGBoost (the performance pick)
-- **Why chosen.** Gradient-boosted trees are the go-to for tabular problems like this and usually top the
-  leaderboard; `scale_pos_weight` handles the imbalance cleanly.
-- **Advantages.** Typically best accuracy/AUC, regularised against overfitting, handles mixed feature types.
-- **Limitations.** More hyperparameters to get right; less transparent (we lean on feature importance and
-  could add SHAP for case-level explanations).
+### Model 3: XGBoost (the one that usually wins)
+- **Why.** Gradient-boosted trees are the standard choice for tabular data like this and normally come out
+  on top. The `scale_pos_weight` setting handles the imbalance neatly.
+- **Strengths.** Usually the best accuracy and AUC, built-in guards against overfitting, handles mixed
+  feature types.
+- **Weaknesses.** More knobs to tune, and less transparent (we lean on feature importance, and could add
+  SHAP for per-customer explanations).
 
-We evaluate with a stratified **80/20 train/test split** for the headline numbers and **5-fold stratified
-cross-validation** (ROC-AUC) on the training set to confirm the ranking is stable, not a fluke of one split.
+For evaluation we use a stratified 80/20 split for the headline numbers, plus **5-fold stratified
+cross-validation** (on ROC-AUC) to check the ranking holds up and isn't just a lucky split.
 """)
 
 code(r"""
@@ -814,19 +822,19 @@ print("\nAll models trained.")
 """)
 
 md(r"""
-**Read:** all three cross-validate around **0.88–0.90 ROC-AUC** with tight error bars — the signal is real
-and stable, not an artefact of one lucky split. XGBoost and Logistic Regression are neck-and-neck on the
-CV ranking; the test set below breaks the tie on the metrics that matter for action.
+**What this says:** all three land around 0.88-0.90 ROC-AUC with small error bars. The signal is real and
+steady, not an accident of one split. XGBoost and Logistic Regression are almost tied here; the test set
+below settles it on the numbers that drive action.
 """)
 
 # ===========================================================================
 # SECTION 7 — MODEL EVALUATION
 # ===========================================================================
 md(r"""
-# 7 — Model Evaluation
+# 7. Model Evaluation
 
-We score every model on the held-out test set across the full metric suite, then look at confusion
-matrices and ROC curves before crowning a winner.
+Now we score each model on the held-out test set across the full set of metrics, look at the confusion
+matrices and ROC curves, and then pick a winner.
 """)
 
 code(r"""
@@ -886,37 +894,37 @@ md(r"""
 
 | Model | What the test set shows |
 |-------|-------------------------|
-| **XGBoost** | **Best ROC-AUC (~0.90) and best F1 (~0.62).** The strongest *ranker* of customers and the best balance of precision and recall. |
-| Random Forest | Highest precision (~0.72) but low recall (~0.42) — it's cautious, catching fewer than half the responders. |
-| Logistic Regression | Highest recall (~0.73) but low precision (~0.42) — it casts a wide, noisy net. |
+| **XGBoost** | Best ROC-AUC (~0.90) and best F1 (~0.62). It ranks customers best and strikes the best balance between precision and recall. |
+| Random Forest | Highest precision (~0.72) but low recall (~0.42). Cautious; it catches fewer than half the responders. |
+| Logistic Regression | Highest recall (~0.73) but low precision (~0.42). Casts a wide, noisy net. |
 
-**Decision: XGBoost.** Because the model's real job is to **rank** customers so we can contact the most
-promising first, ROC-AUC is the headline metric — and XGBoost leads it while also posting the best F1.
-Crucially, its 0.5-threshold behaviour isn't the final word: the probability output lets us *choose* the
-operating point to match the budget, which is exactly what we do next.
+**The pick: XGBoost.** The model's real job is to rank customers so we can contact the most promising
+first, and ROC-AUC measures exactly that. XGBoost leads on it and posts the best F1 too. Its behaviour at
+the default 0.5 cutoff isn't the whole story, though. Because it outputs a probability, we can move that
+cutoff to fit the budget, which is what the next section does.
 """)
 
 # ===========================================================================
 # SECTION 8 — MARKETING PERSPECTIVE
 # ===========================================================================
 md(r"""
-# 8 — Marketing Perspective: which metric actually matters?
+# 8. A Marketing View: which metric actually matters?
 
-Metrics are not abstract here — each one maps to money.
+These metrics aren't abstract here. Each one maps to money.
 
-- **A false positive** = we contact someone who won't respond → **wasted contact cost** (and mild brand
-  fatigue). In this dataset the cost is **\$3 per contact**.
-- **A false negative** = we *skip* someone who would have responded → **lost sale**. Each accepted offer is
-  worth **\$11**.
+- A **false positive** means we contacted someone who won't respond. That's a wasted contact (and a little
+  brand fatigue). In this data, a contact costs **\$3**.
+- A **false negative** means we skipped someone who would have responded. That's a lost sale, worth
+  **\$11** each.
 
-**Precision** = of those we contact, how many respond (controls wasted spend). **Recall** = of all real
-responders, how many we catch (controls missed revenue). **F1** balances the two.
+**Precision** is, of the people we contact, how many respond (it controls wasted spend). **Recall** is, of
+all the people who would respond, how many we actually reach (it controls missed sales). **F1** balances
+the two.
 
-So which to prioritise? It depends on the economics, and here the economics are lopsided: a missed
-responder (\$11 of value forgone) hurts more than a wasted contact (\$3). That argues for **leaning toward
-recall** — but not blindly, because contacting everyone wastes the \$3 many times over. The right answer
-isn't to pick a metric in the abstract; it's to **tune the decision threshold to maximise expected
-profit**, using the model's probability scores. Let's compute that curve directly.
+So which matters most? It depends on the economics, and here they're lopsided: a missed responder (\$11)
+hurts more than a wasted contact (\$3). That points toward favouring recall, but not blindly, because
+contacting everyone burns that \$3 over and over. The honest answer isn't to crown one metric. It's to set
+the cutoff where expected profit is highest, using the model's probabilities. Here's that curve.
 """)
 
 code(r"""
@@ -960,25 +968,25 @@ print(f"Profit-maximising threshold ≈ {best_t:.2f} (vs. the naive 0.50).")
 """)
 
 md(r"""
-**Conclusion — prioritise recall, operationalised through the threshold.** Because a missed responder costs
-more than a wasted contact, the profit curve peaks at a threshold **below** the naive 0.50 — i.e. it pays
-to contact *more* people and accept some waste in order to catch more responders. In practice:
+**The takeaway: favour recall, and set the cutoff by profit.** Because a missed responder costs more than
+a wasted contact, profit peaks at a cutoff *below* the default 0.5. In other words, it pays to contact a
+few more people and accept some waste in order to catch more buyers. So, in practice:
 
-1. **Use ROC-AUC to choose the model** (it's threshold-independent and measures ranking quality — the thing
-   we actually rely on).
-2. **Use the profit curve to choose the threshold**, given the campaign's real cost and margin and any
-   budget cap. When economics are unknown, default to a **recall-leaning** operating point (e.g. F2 instead
-   of F1), since the asymmetric costs here favour catching responders over avoiding waste.
+1. **Pick the model with ROC-AUC.** It doesn't depend on the cutoff, and it measures the thing we rely on:
+   ranking.
+2. **Pick the cutoff with the profit curve**, using the campaign's real cost and margin and whatever
+   budget cap exists. If you don't know the economics, lean toward recall (optimise F2 rather than F1),
+   since the costs here favour catching responders over avoiding waste.
 
-This is the single most important translation in the project: *the metric isn't fixed — the business
-economics pick it.*
+This is the most important translation in the whole project: the metric isn't fixed up front. The business
+economics choose it.
 """)
 
 # ===========================================================================
 # SECTION 9 — FEATURE IMPORTANCE
 # ===========================================================================
 md(r"""
-# 9 — Feature Importance: what drives a "yes"?
+# 9. Feature Importance: what drives a "yes"?
 """)
 
 code(r"""
@@ -1000,172 +1008,174 @@ imp
 """)
 
 md(r"""
-**What drives campaign response — in business language.**
+**What drives a response, in plain terms.**
 
-- **Prior campaign acceptances (`TotalAcceptedCmp`) tower over everything.** Past "yes" → future "yes". The
-  most valuable thing you own is a list of people who already responded once.
-- **Recency** — how recently they bought. Warm customers convert; lapsed ones don't.
-- **Customer tenure** — relationship length shapes responsiveness.
-- **Marital status (single) and education (PhD)** — single, highly-educated customers over-index.
-- **Catalog & store purchases, meat/wine spend, income** — the affluent, high-engagement core.
-- **Children at home** — fewer kids, higher response.
+- **Past campaign acceptances (`TotalAcceptedCmp`) matter most, by a wide margin.** A past "yes" predicts
+  a future "yes". The most valuable thing you own is a list of people who already responded once.
+- **Recency:** how recently they bought. Warm customers convert; lapsed ones don't.
+- **Tenure:** how long they've been a customer shapes how they respond.
+- **Being single, and holding a PhD:** both groups respond more than average.
+- **Catalog and store purchases, meat and wine spend, income:** the comfortable, engaged core.
+- **Children at home:** fewer kids, higher response.
 
-These aren't just model internals; they're a **targeting checklist**. The most responsive customer is a
-**recent, affluent, previously-responsive buyer with no children** — and the model quantifies exactly how
-much each trait shifts the odds.
+This isn't just model trivia. It's a targeting checklist. The most likely responder is a recent,
+comfortable, previously-responsive buyer with no kids at home, and the model puts a number on how much each
+trait shifts the odds.
 """)
 
 # ===========================================================================
 # SECTION 10 — BUSINESS RECOMMENDATIONS
 # ===========================================================================
 md(r"""
-# 10 — Business Recommendations
+# 10. Business Recommendations
 
-Translating the analysis into an action plan leadership can run this quarter.
+Here's the analysis turned into a plan leadership can run this quarter.
 
-### Customer Targeting — *who to contact first*
-Rank the entire base by the model's response probability and work down the list until the budget is spent.
-The top of that list will be dominated by the traits we proved matter: **prior responders, high-income,
-recent buyers, childless, catalog-active.** Start with the ~460 customers who've accepted any prior
-campaign — they convert at ~3x the base rate and cost nothing new to identify.
+### Who to contact first
+Rank the whole base by the model's response probability and work down until the budget runs out. The top
+of that list will be full of the traits we've shown matter: past responders, higher income, recent buyers,
+no kids, catalog-active. Start with the ~460 customers who've accepted a campaign before. They convert at
+about three times the average and cost nothing extra to find.
 
-### Budget Allocation — *where the money goes*
-Stop spending uniformly. Concentrate budget on the **top 2–3 deciles** of predicted probability, where the
-responders actually are. The profit curve in Section 8 shows the contact list should be set by *expected
-profit per contact*, not by reaching everyone — reallocating spend from the bottom half (which barely
-responds) to the top decile is the fastest ROI win available.
+### Where to spend
+Stop spreading the budget evenly. Put it on the top two or three deciles of predicted probability, where
+the responders actually are. The profit curve in Section 8 makes the point: set the contact list by
+expected profit per contact, not by trying to reach everyone. Shifting spend from the unresponsive bottom
+half to the top decile is the quickest ROI win on the table.
 
-### Personalization — *who gets the bespoke treatment*
-- **High-income + prior responders (≈47% response):** premium, higher-value offers and early access — not
-  a generic coupon.
-- **Recent buyers:** trigger campaigns within ~30 days of a purchase while the relationship is warm.
-- **Catalog-active customers:** keep feeding the channel they actually convert through.
-- **Price-sensitive / deal-driven segments:** discount-led messaging, kept separate from the premium track.
+### Who gets the personal touch
+- **High earners who've responded before (about 47% response):** premium offers and early access, not a
+  generic coupon.
+- **Recent buyers:** reach out within about 30 days of a purchase, while they're warm.
+- **Catalog-active customers:** keep feeding the channel they actually buy through.
+- **Deal-driven, price-sensitive customers:** discount-led messaging, kept separate from the premium track.
 
-### Campaign Optimization — *how to lift the response rate*
-- Move from **calendar-based blasts to behaviour-triggered** sends (recency, recent browse-to-buy).
-- **Tune the contact threshold to the campaign's economics** (Section 8) rather than defaulting to "contact
-  the obvious few" or "contact everyone".
-- **A/B test** creative and offer depth within the top deciles to keep improving conversion.
+### How to lift the response rate
+- Shift from calendar blasts to triggered sends (off recency, off a recent browse-to-buy).
+- Set the contact cutoff from the campaign's economics (Section 8) instead of defaulting to "the obvious
+  few" or "everyone".
+- A/B test the creative and the offer within the top deciles, and keep improving.
 
-### ROI Improvement — *how to make marketing pay more*
-The mechanism is simple: the same budget, pointed at customers who respond ~3x more often, produces far
-more accepted offers per dollar. Track **incremental response rate** and **profit per contact** against a
-random-targeting control so the lift is provable to finance, not just asserted.
+### How to make marketing pay more
+The mechanism is simple. The same budget, aimed at customers who respond about three times more often,
+produces far more accepted offers per dollar. Track response rate and profit per contact against a
+random-targeting control, so the lift is something you can prove to finance rather than just claim.
 """)
 
 # ===========================================================================
 # SECTION 11 — DEPLOYMENT RISKS
 # ===========================================================================
 md(r"""
-# 11 — Deployment Risks: *if this model shipped tomorrow, what could go wrong?*
+# 11. Deployment Risks: what could go wrong once this is live?
 
-A model is a living asset, not a one-off result. Four failure modes and how I'd handle each:
+A model is something you maintain, not a one-off result. Four ways it can fail, and how I'd handle each.
 
-### False Positives — contacting people who won't respond
-- **Impact.** Wasted contact cost (\$3 each here) and, at scale, brand fatigue / unsubscribes that erode the
-  list over time.
-- **Mitigation.** **Threshold tuning** to the campaign's economics (Section 8), frequency caps per customer,
-  and suppression lists. Monitor precision in production and pull back the threshold if waste creeps up.
+### False positives: contacting people who won't respond
+- **Impact.** Wasted contact cost (\$3 a time here), and at scale, brand fatigue and unsubscribes that wear
+  the list down.
+- **What to do.** Set the cutoff from the economics (Section 8), cap how often any one person is contacted,
+  and keep suppression lists. Watch precision in production and ease the cutoff back if waste creeps up.
 
-### False Negatives — skipping people who would have responded
-- **Impact.** Lost sales — the more expensive error here, since a missed responder (\$11) outweighs a wasted
+### False negatives: skipping people who would have responded
+- **Impact.** Lost sales, the costlier mistake here, since a missed responder (\$11) outweighs a wasted
   contact (\$3).
-- **Mitigation.** **Recall-leaning operating point**, plus a small **random holdout** that's contacted
-  regardless of score, so we keep measuring (and recovering) responders the model currently misses.
+- **What to do.** Lean the cutoff toward recall, and keep a small random holdout that gets contacted no
+  matter what, so we can keep spotting (and recovering) the responders the model misses.
 
-### Data Drift — the inputs change
-- **Impact.** Income bands inflate, channel mix shifts, a feature pipeline upstream changes units — and the
-  model degrades silently.
-- **Mitigation.** A **monitoring pipeline** that tracks input distributions (population stability index) and
-  output score distributions, with alerts when they move beyond tolerance. Schema/contract tests on the
+### Data drift: the inputs change
+- **Impact.** Incomes inflate, the channel mix shifts, or an upstream pipeline quietly changes units, and
+  the model slowly gets worse without anyone noticing.
+- **What to do.** Run a monitoring job that watches the input and score distributions (a
+  population-stability index works well) and alerts when they move too far. Add schema checks on the
   feature pipeline.
 
-### Changing Customer Behaviour — the world moves on
-- **Impact.** Post-promotion, post-recession, or seasonal shifts mean yesterday's responders aren't
-  tomorrow's; accuracy decays.
-- **Mitigation.** **Periodic retraining** on a rolling window (e.g. quarterly), champion/challenger testing
-  before promotion, and tracking live response rate vs. the model's predicted rate as the canary.
+### Changing behaviour: the world moves on
+- **Impact.** After a big promotion, a downturn, or just a seasonal shift, yesterday's responders aren't
+  tomorrow's, and accuracy fades.
+- **What to do.** Retrain on a rolling window (say, quarterly), test a challenger model against the current
+  one before promoting it, and watch the live response rate against what the model predicted as an early
+  warning.
 
-**Cross-cutting safeguards.** Calibrate probabilities before using them as dollars; check fairness across
-demographics so we're not systematically excluding a group; and keep a human-readable audit (feature
-importance + SHOULD-add SHAP) so marketing trusts and can explain the targeting.
+**A few things that apply across the board.** Calibrate the probabilities before treating them as dollars,
+check the targeting isn't quietly excluding a whole group, and keep a readable explanation of the model
+(feature importance now, SHAP later) so the marketing team trusts it and can explain it.
 """)
 
 # ===========================================================================
 # SECTION 12 — FUTURE IMPROVEMENTS
 # ===========================================================================
 md(r"""
-# 12 — Future Improvements: *what I'd do with one more week*
+# 12. Future Improvements: what I'd do with another week
 
-Prioritised by expected business impact, not by what's technically fun.
+Ordered by business impact, not by what's fun to build.
 
-### 1. Business usage (highest impact)
-- **Threshold/budget optimiser in production** so each campaign automatically picks its profit-maximising
-  contact list — this is where the money is.
-- **Customer segmentation** (e.g. K-Means / RFM on spend, recency, engagement) to pair the *who* with a
-  matching *what* (offer), turning probabilities into tailored campaigns.
-- **A/B testing framework** vs. a random-targeting control to prove incremental lift to finance.
+### 1. Putting it to use (biggest payoff)
+- A cutoff/budget optimiser in production, so each campaign automatically picks its most profitable contact
+  list. This is where the money is.
+- Customer segmentation (K-Means or RFM on spend, recency, and engagement) to match the *who* with the
+  right offer, turning probabilities into tailored campaigns.
+- An A/B testing setup against a random-targeting control, to prove the lift to finance.
 
-### 2. Data (medium-high impact)
-- Add **richer behavioural features**: email open/click, web session depth, time-since-last-campaign, and
-  seasonality — browsing *intent* signals the current data lacks.
-- Bring in **margin per product category** so we optimise profit, not just response.
+### 2. Better data (medium-to-high payoff)
+- Richer behavioural signals: email opens and clicks, how deep web sessions go, time since the last
+  campaign, seasonality. The intent signals the current data is missing.
+- Margin per product category, so we can optimise for profit, not just response.
 
-### 3. Modelling (incremental impact)
-- **Hyperparameter tuning** (Bayesian/Optuna) and **probability calibration** (isotonic) so scores are
-  trustworthy dollars.
-- **Feature selection** to prune redundant inputs for a leaner, faster model.
-- **Ensembling / stacking** Logistic + XGBoost, and **SHAP** for per-customer explanations the marketing
-  team can read.
+### 3. Better modelling (smaller payoff)
+- Hyperparameter tuning (Optuna or similar) and probability calibration (isotonic), so the scores are
+  trustworthy as dollars.
+- Feature selection to trim redundant inputs for a leaner, faster model.
+- Stacking Logistic Regression with XGBoost, and adding SHAP for per-customer explanations the team can
+  read.
 
-The theme: I'd spend the week mostly on **turning the model into decisions** (segmentation, threshold
-optimisation, experimentation), because the modelling is already good enough — the remaining upside is in
-*usage*, not in chasing another point of AUC.
+The theme: I'd spend most of the week turning the model into decisions (segmentation, cutoff optimisation,
+testing), because the model itself is already good enough. The upside now is in how it's used, not in
+chasing another fraction of a point of AUC.
 """)
 
 # ===========================================================================
 # SECTION 13 — EXECUTIVE SUMMARY
 # ===========================================================================
 md(r"""
-# 13 — Executive Summary
-*For the Marketing Director — one page.*
+# 13. Executive Summary
+*For the Marketing Director. One page.*
 
-**The situation.** Our last campaign reached the whole base but only **~15% responded**, so most of the
-spend hit people who were never going to buy. We built a model that scores every customer's likelihood to
+**Where we are.** Our last campaign went to the whole base, but only about 15% responded, so most of the
+spend hit people who were never going to buy. We built a model that scores how likely each customer is to
 respond, so we can target instead of broadcast.
 
-**Approach (one breath).** Cleaned 2,237 customer records → engineered behaviour features (spend, recency,
-engagement, prior-campaign history) → trained and compared three models with leakage-free pipelines and
-cross-validation → translated the winner into a targeting and budget plan.
+**What we did.** Cleaned 2,237 customer records, built behaviour features (spending, recency, engagement,
+past-campaign history), trained and compared three models with leak-free pipelines and cross-validation,
+and turned the best one into a targeting and budget plan.
 
-**What we learned (the money insights).**
-- **Past responders are gold:** customers who accepted a prior campaign respond at **41%** vs **8%** — a 3x
-  list we already own.
-- **Affluence pays:** high-income customers respond ~**2x** more; high-income *and* previously responsive →
+**What we found.**
+- Past responders are gold. People who accepted a campaign before respond at **41%** against **8%**, a
+  list worth roughly three times the average that we already own.
+- Money matters. High earners respond about **twice** as often; high earners who've responded before hit
   **47%**.
-- **Recency & lifestyle matter:** recent buyers and childless, higher-disposable-income households respond
-  far more; raw web traffic does **not** predict response.
+- Recency and lifestyle matter. Recent buyers and households without kids respond far more. Website
+  traffic, on its own, does **not** predict response.
 
-**Best model.** **XGBoost** — **ROC-AUC ≈ 0.90**, F1 ≈ 0.62, cross-validated and stable. It ranks customers
-well enough that a model-driven contact list dramatically out-converts random contacting, and its
-probability output lets us set the contact threshold to **maximise profit** for any given budget.
+**The model.** **XGBoost**, with ROC-AUC around **0.90** and F1 around **0.62**, cross-validated and
+steady. It ranks customers well enough that a model-built list comfortably beats random contacting, and
+because it outputs a probability, we can set the contact cutoff to maximise profit for any budget.
 
-**What leadership should do next.**
-1. **Re-target the ~460 prior responders immediately** (highest-yield, zero new identification cost).
-2. **Concentrate budget on the top 2–3 probability deciles**; stop spending on the unresponsive bottom half.
-3. **Personalise by segment** — premium offers for high-income responders, recency-triggered sends for warm
-   buyers, keep investing in catalog.
-4. **Run it against a random-targeting control** so the lift is proven in dollars.
+**What to do next.**
+1. Go back to the ~460 past responders right away. Highest yield, nothing new to find.
+2. Concentrate budget on the top two or three probability deciles, and stop funding the unresponsive
+   bottom half.
+3. Personalise by segment: premium offers for high-income responders, recency-triggered sends for warm
+   buyers, sustained catalog investment.
+4. Run it against a random-targeting control, so the lift shows up in dollars.
 
-**Expected business impact.** Same budget, pointed at customers who respond ~3x more often → materially more
-accepted offers per dollar, less wasted contact spend, and a repeatable, measurable targeting engine instead
-of an annual guess. The model doesn't just predict response — it tells marketing **where the next dollar
-earns the most.**
+**What it's worth.** The same budget, aimed at customers who respond about three times more often, means a
+lot more accepted offers per dollar, less wasted spend, and a repeatable, measurable way to target instead
+of an annual guess. The model doesn't just predict response. It shows marketing where the next dollar earns
+the most.
 
 ---
-*Built with Python (pandas, scikit-learn, XGBoost). Reproducible end-to-end; an interactive Streamlit app
-accompanies this notebook for live exploration and single-customer scoring.*
+*Built in Python (pandas, scikit-learn, XGBoost). Runs end to end, and an interactive Streamlit app comes
+with it for live exploration and scoring individual customers.*
 """)
 
 # ===========================================================================

@@ -8,3 +8,7 @@ jupyter
 nbformat
 nbconvert
 ipykernel
+
+# Only needed to regenerate the one-page PDF (scripts/build_pdf.py).
+# After installing, also run: playwright install chromium
+playwright
