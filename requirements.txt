@@ -1,0 +1,9 @@
+# Runtime dependencies for the Streamlit app (deployed on Streamlit Cloud).
+# Kept minimal so the cloud build stays fast — the notebook's extra tooling
+# (matplotlib, seaborn, jupyter) lives in requirements-dev.txt.
+streamlit>=1.37
+pandas>=2.2
+numpy>=1.26
+scikit-learn>=1.4
+xgboost>=2.0
+plotly>=5.22

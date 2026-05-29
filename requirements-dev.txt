@@ -1,0 +1,10 @@
+# Everything in the app, plus the tooling to run the analysis notebook locally.
+-r requirements.txt
+
+# Notebook visualisation + execution
+matplotlib>=3.8
+seaborn>=0.13
+jupyter
+nbformat
+nbconvert
+ipykernel
